@@ -9,8 +9,8 @@
 
 
 int main(void){
-	int fd[12];
-	for(int i = 0; i < 20; i++){
+	int fd[20];
+	for(int i = 10; i < 20; i++){
 		srand((unsigned int)time(NULL) + i);
 		char title[20] = "serverDB";
 		char txt[20] = ".txt";
@@ -31,7 +31,7 @@ int main(void){
 		strcat(title, txt);
 
 		fd[i] = open(title, O_WRONLY | O_CREAT, 0644);
-		for(int j = 0;  j < 500000; j++){
+		for(int j = 0;  j < 5000000; j++){
 			char str_buf[30];
 			char int_buf[30];
 			for(int m = 0; m < 5; m++){
@@ -51,25 +51,7 @@ int main(void){
 			write(fd[i], tmp, strlen(tmp));
 		}
 		close(fd[i]);
-
-		
-		char read_buf[30];
-		int fd2 = open(title, O_RDONLY);
-		if(fd[i] == -1){
-			fprintf(stderr, "fd2 open error\n");
-			exit(1);
-		}
-		for(int w = 0; w < 10; w++){
-			if(read(fd2, read_buf, 12) == -1){
-				fprintf(stderr, "read error\n");
-				exit(1);
-			}
-			read_buf[14] = '\0';
-			char* name = strtok(read_buf, "\\");
-			char* gold = strtok(NULL, "\\");
-			printf("fd%d -> name : %s, gold : %s\n",i ,name, gold);
-		}
-		close(fd2);
+		printf("%d completed !\n", i);
 	}
 
 	return 0;

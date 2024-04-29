@@ -10,10 +10,11 @@
 #include <errno.h>
 
 #define MAX_LOOP 10000000
-#define MAX_THREADS 20
+#define MAX_FILE_LINES 5000000
+#define MAX_THREADS 2
+#define SINGLE_THREAD 1
+#define MULTI_THREAD 0
 #define MAX_BUFFER 20
-#define RUNNING 1
-#define WAITING 0
 
 typedef struct Data{
 	int index;
@@ -27,7 +28,9 @@ void* thread_function(void* arg);
 void multi_thread(Data* thread_data);
 void single_thread();
 void norm_exit(int signal);
-int joint_routine(int recur);
+int joint_routine(int status, int index);
+int read_file(int index);
+void edit_title(char* title, int index);
 void init(Data* thread_data);
 
 int main(void){
@@ -60,9 +63,11 @@ int main(void){
 	printf("결론 : ");
 	if(multi_dif * 5 < single_dif){
 		printf("멀티 스레드가 싱글 스레드보다 5배 이상의 성능을 보였습니다. \n");
+		printf("성능 : %.3f 배\n", single_dif / multi_dif);
 	}
 	else{
 		printf("멀티 스레드가 싱글 스레드보다 5배 이상의 성능을 보이지 못했습니다.\n");
+		printf("성능 : %.3f 배\n", single_dif / multi_dif);
 	}
 	printf("======================================================================\n");
 
@@ -82,13 +87,13 @@ void* thread_function(void* arg){
 	pthread_cond_wait(&ctd, &mtd[thread_data->index]);
 	printf("%2d thread cond start\n", thread_data->index);
 
-	thread_data->total = joint_routine(1);
+	thread_data->total = joint_routine(MULTI_THREAD, thread_data->index);
 	pthread_mutex_unlock(&mtd[thread_data->index]);
 }
 
 // 싱글 스레드 실행 함수
 void single_thread(){
-	int total = joint_routine(MAX_THREADS);
+	int total = joint_routine(SINGLE_THREAD, -1);
 	printf("--- total sum : %d ---\n", total);
 }
 
@@ -138,14 +143,77 @@ void norm_exit(int signal){
 }
 
 // 싱글스레드, 멀티스레드 공동 루틴 정의
-int joint_routine(int recur){
-	int tmp = 0;
-	for(int j = 0; j < recur; j++){
-		for(int i = 0; i < MAX_LOOP; i++){
-			tmp++;
+// status == 1 -> single thread로 작동
+// status == 0 -> multi thread로 작동
+// index는 멀티스레로 작동시 필요한 부분이다.
+int joint_routine(int status, int index){
+	int gold = 0;
+	
+	if(status == SINGLE_THREAD){
+		for(int i = 0; i < MAX_THREADS; i++){
+			gold += read_file(i);
 		}
 	}
-	return tmp;
+	else if(status == MULTI_THREAD){
+		gold += read_file(index);
+	}
+
+	return gold;
+}
+
+void edit_title(char* title, int index){
+	char txt[MAX_BUFFER] = ".txt";
+	int len = strlen(title);
+
+	if(index < 10){
+		char num = index + '0';
+		title[len] = num;
+		title[len+1] = '\0';
+	}
+	else{
+		char num[2];
+		num[0] = index / 10 + '0';
+		num[1] = index % 10 + '0';
+		title[len] = num[0];
+		title[len+1] = num[1];
+		title[len+2] = '\0';
+	}
+	strcat(title, txt);
+}
+
+// 하나의 파일을 읽고 찾고자 하는 플레이어 아이디와
+// 동일한 아이디가 있으면 해당 플레이어의 골드량
+// 더한다. 중복을 허용하기에 끝까지 읽어 들여서
+// 총합을 반환한다.
+int read_file(int index){
+	int gold = 0;
+	char title[MAX_BUFFER] = "serverDB";
+	char read_buf[MAX_BUFFER];
+	char find_name[MAX_BUFFER] = " tmp ";
+	edit_title(title, index);
+	int fd = open(title, O_RDONLY);
+	if(fd == -1){
+		fprintf(stderr, "fd open error\n");
+		norm_exit(1);
+	}
+	for(int w = 0; w < MAX_FILE_LINES; w++){
+		// 원본파일 읽기
+		if(read(fd, read_buf, 12) == -1){
+			fprintf(stderr, "read error\n");
+			close(fd);
+			norm_exit(1);
+		}
+		read_buf[12] = '\0';
+		char* name = strtok(read_buf, "\\");
+		char* str_gold = strtok(NULL, "\\");
+		if(strncmp(name, "jajim", 5) == 0){
+			int find_gold = atoi(str_gold);
+			gold += find_gold;
+			printf("%2d server : %s 플레이어 존재, 골드 소지량 : %d 확인\n", index, name, find_gold);
+		}
+	}
+	close(fd);
+	return gold;
 }
 
 // 초기 작업
