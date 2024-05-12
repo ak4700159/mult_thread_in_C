@@ -10,8 +10,8 @@
 #include <errno.h>
 
 #define MAX_LOOP 10000000
-#define MAX_FILE_LINES 5000000
-#define MAX_THREADS 2
+#define MAX_FILE_LINES 50000
+#define MAX_THREADS 10
 #define SINGLE_THREAD 1
 #define MULTI_THREAD 0
 #define MAX_BUFFER 20
@@ -41,7 +41,8 @@ int main(void){
 	struct timeval before, after;
 	gettimeofday(&before, NULL);
 	
-	single_thread();
+	//single_thread();
+	multi_thread(thread_data);
 
 	gettimeofday(&after, NULL);
 	float single_dif = after.tv_sec - before.tv_sec + 1e-6 * (after.tv_usec - before.tv_usec);
@@ -51,7 +52,8 @@ int main(void){
 	// 2. 멀티스레드 상황일 때
 	gettimeofday(&before, NULL);
 
-	multi_thread(thread_data);
+	//multi_thread(thread_data);
+	single_thread();
 
 	gettimeofday(&after, NULL);
 	float multi_dif = after.tv_sec - before.tv_sec + 1e-6 * (after.tv_usec - before.tv_usec);
@@ -161,32 +163,14 @@ int joint_routine(int status, int index){
 	return gold;
 }
 
-void edit_title(char* title, int index){
-	char txt[MAX_BUFFER] = ".txt";
-	int len = strlen(title);
-
-	if(index < 10){
-		char num = index + '0';
-		title[len] = num;
-		title[len+1] = '\0';
-	}
-	else{
-		char num[2];
-		num[0] = index / 10 + '0';
-		num[1] = index % 10 + '0';
-		title[len] = num[0];
-		title[len+1] = num[1];
-		title[len+2] = '\0';
-	}
-	strcat(title, txt);
-}
-
 // 하나의 파일을 읽고 찾고자 하는 플레이어 아이디와
 // 동일한 아이디가 있으면 해당 플레이어의 골드량
 // 더한다. 중복을 허용하기에 끝까지 읽어 들여서
 // 총합을 반환한다.
 int read_file(int index){
 	int gold = 0;
+	int count = 0;
+	int ac = 0;
 	char title[MAX_BUFFER] = "serverDB";
 	char read_buf[MAX_BUFFER];
 	char find_name[MAX_BUFFER] = " tmp ";
@@ -206,14 +190,34 @@ int read_file(int index){
 		read_buf[12] = '\0';
 		char* name = strtok(read_buf, "\\");
 		char* str_gold = strtok(NULL, "\\");
-		if(strncmp(name, "jajim", 5) == 0){
-			int find_gold = atoi(str_gold);
+		int find_gold = atoi(str_gold);
+		if(strncmp(name, "abcde", 5) == 0){
 			gold += find_gold;
 			printf("%2d server : %s 플레이어 존재, 골드 소지량 : %d 확인\n", index, name, find_gold);
 		}
 	}
 	close(fd);
 	return gold;
+}
+// 파일 경로를 인덱스에 따라 만들어주는 함수
+void edit_title(char* title, int index){
+	char txt[MAX_BUFFER] = ".txt";
+	int len = strlen(title);
+
+	if(index < 10){
+		char num = index + '0';
+		title[len] = num;
+		title[len+1] = '\0';
+	}
+	else{
+		char num[2];
+		num[0] = index / 10 + '0';
+		num[1] = index % 10 + '0';
+		title[len] = num[0];
+		title[len+1] = num[1];
+		title[len+2] = '\0';
+	}
+	strcat(title, txt);
 }
 
 // 초기 작업

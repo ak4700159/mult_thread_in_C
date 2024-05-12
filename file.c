@@ -9,8 +9,8 @@
 
 
 int main(void){
-	int fd[20];
-	for(int i = 10; i < 20; i++){
+	int fd[40];
+	for(int i = 0; i < 40; i++){
 		srand((unsigned int)time(NULL) + i);
 		char title[20] = "serverDB";
 		char txt[20] = ".txt";
@@ -31,7 +31,7 @@ int main(void){
 		strcat(title, txt);
 
 		fd[i] = open(title, O_WRONLY | O_CREAT, 0644);
-		for(int j = 0;  j < 5000000; j++){
+		for(int j = 0;  j < 500000; j++){
 			char str_buf[30];
 			char int_buf[30];
 			for(int m = 0; m < 5; m++){
